@@ -1,20 +1,54 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP085.h>
-#include <Adafruit_TSL2561_U.h>
 #include <ArduinoJson.h>
+#include "globals.h"
 #include "wifimqtt.h"
+#include "ultrasonic.h"
 
-// Define your LED pin
-byte FAN_PIN = 18;
-Adafruit_BMP085 bmp;
-Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
-
-unsigned long previousMillis = 0; // Initialize to 0 for proper timing
 const long interval = 3000;
-float temperature, pressure, altitude, lux;
+
+void getData() {
+  client.publish("pumpinfo", "give me information");
+  Serial.println("MQTT publish pumpinfo - now wait");
+  state = WAIT;
+}
+
+void sendNewPumpInfos()
+{
+  // Create a JsonDocument object with enough capacity
+  StaticJsonDocument<200> doc;
+
+  // Populate the JsonDocument
+  doc["distance1"] = distance1;
+  doc["distance2"] = 22; // Assuming distance2 is an integer
+  
+  // Serialize the JsonDocument to a char buffer
+  char buffer[256];
+  serializeJson(doc, buffer);
+
+  // Assuming client is your MQTT client instance
+  client.publish("waterDistance", buffer); // Publish the JSON data
+
+  // For debugging, print to serial monitor
+  Serial.println("Distance transmitted");
+}
+
+void startPumping() {
+  unsigned long currentMillis = millis();
+  digitalWrite(relaisglucosfeder, LOW);  // Assuming active-low relay
+  if (currentMillis - previousMillis >= interval) {
+    digitalWrite(relaisglucosfeder, HIGH);  // Turn off the relay
+    Serial.println("Pump is off");
+    
+    getDistance();
+    
+    Serial.print(distance1);
+    Serial.println( "cm");
+    sendNewPumpInfos();
+    state = TIMEFORSLEEP;
+  }
+}
 
 void connectAP() {
   Serial.println("Connecting to WiFi...");
@@ -32,101 +66,42 @@ void connectAP() {
   Serial.println("WiFi connected!");
 }
 
-void configureSensor() {
-  tsl.enableAutoRange(true);            // Auto-gain
-  tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);  // Fastest
-  // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);  // Medium
-  // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);  // Longest
-
-  Serial.println("Sensor configured");
-}
-
-void sensorReading() {
-  Serial.print("Temperature = ");
-  temperature = bmp.readTemperature();
-  Serial.print(temperature);
-  Serial.println(" *C");
-
-  Serial.print("Pressure = ");
-  pressure = bmp.readPressure();
-  Serial.print(pressure);
-  Serial.println(" Pa");
-
-  Serial.print("Altitude = ");
-  altitude = bmp.readAltitude();
-  Serial.print(altitude);
-  Serial.println(" meters");
-
-  sensors_event_t event;
-  tsl.getEvent(&event);
-
-  if (event.light) {
-    Serial.print("Light = ");
-    lux = event.light;
-    Serial.print(lux);
-    Serial.println("lux");
-  } else {
-    Serial.println("Sensor overload");
-  }
-}
-
-void sendSensorValuesMQTT(){
-  DynamicJsonDocument doc(1024);
-  doc["temperature"] = temperature;
-  doc["pressure"] = pressure;
-  doc["altitude"] = altitude;
-  doc["lux"] = lux;
-  char buffer[256];
-  serializeJson(doc, buffer);
-  client.publish("weatherstation", buffer);
-
-  //  Print the JSON string to Serial for debugging purposes
-  Serial.print("Sent JSON: ");
-  Serial.println(buffer);
-}
-
 void setup() {
-  Serial.begin(115200); // Initialize serial communication
-  pinMode(FAN_PIN, OUTPUT);
+  Serial.begin(115200);
+  pinMode(relaisglucosfeder, OUTPUT);
+  pinMode(trigger1, OUTPUT);
+  pinMode(echo1, INPUT);
 
-  if (!bmp.begin()) {
-    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
-    while (1) {}
-  }
-  if (!tsl.begin()) {
-    Serial.print("No TSL2561 sensor found. Check wiring!");
-    while (1);
-  }
-
-  configureSensor();
+  state = GETDATA;
   
-  // Call the connectAP function to connect to WiFi
   connectAP();
-
-  // Initialize MQTT client
-  client.setServer(mqtt_server, 1884); // Use default MQTT port 1883
+  
+  client.setServer(mqtt_server, 1884);  
   client.setCallback(callback);
 }
 
 void loop() {
-  // Check MQTT connection and reconnect if necessary
   if (!client.connected()) {
     reconnect();
   }
-
-  // Maintain MQTT connection
   client.loop();
-
-  // Blink LED every second
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-    sensorReading();
-    sendSensorValuesMQTT();
+  switch (state) {
+    case GETDATA:
+      getData();
+      break;
+    case PUMPING:
+      startPumping();
+      break;
+    case WAIT:
+  
+      break;
+    case TIMEFORSLEEP:
+    Serial.println("time for going to sleep ZzzzzZZZZ");
+    client.publish("recorddeepsleep", "ZzzzzZZ");
+    delay(1000);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,ESP_PD_OPTION_OFF);
+    state = GETDATA;
+    delay(1000*10);
+      break;
   }
-  // digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-  // client.publish("tonodered", "hellofromesp32");
 }
-
-
-

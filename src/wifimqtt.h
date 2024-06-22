@@ -2,14 +2,15 @@
 #define WIFIMQTT_H
 
 #include <Arduino.h>
+#include "globals.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "credentials.h"
-extern byte FAN_PIN;
+
 // MQTT
 String clientID = "ESP32-";
-const char *mqtt_server = "192.168.1.6";
+const char *mqtt_server = "192.168.1.7";
 const char *mqtt_user = "ahsan";
 const char *mqtt_password = "34501";
 
@@ -22,7 +23,7 @@ void reconnect() {
     String newClientID = clientID + String(random(0xffff), HEX);
     if (client.connect(newClientID.c_str(), mqtt_user, mqtt_password)) {
       Serial.println("Connected to MQTT");
-      client.subscribe("fan"); // Subscribe to the topic
+      client.subscribe("pumpStart"); // Subscribe to the topic
     } else {
       Serial.print("Failed, rc=");
       Serial.print(client.state());
@@ -37,15 +38,23 @@ void callback(char *topic, byte *message, unsigned int length) {
   for (unsigned int i = 0; i < length; i++) {
     messageTemp += (char)message[i];
   }
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  Serial.println(messageTemp);
-  if (messageTemp == "true") {
-    digitalWrite(FAN_PIN, HIGH);
-  } else if (messageTemp == "false") {
-    digitalWrite(FAN_PIN, LOW);
+  if(String(topic) == "pumpStart")
+  {
+    Serial.print("message is : ");
+    Serial.println(messageTemp);
+    if(messageTemp == "1")
+    {
+      previousMillis = millis();
+      state = PUMPING;
+      Serial.println("Pumping...");
+    }
+    else if (messageTemp == "0")
+    {
+      state = TIMEFORSLEEP;
+      Serial.println("sleeping.....");
+    }
   }
+
 }
 
 #endif
