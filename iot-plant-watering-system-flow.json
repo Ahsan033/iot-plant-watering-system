@@ -1,0 +1,658 @@
+[
+    {
+        "id": "c6822b01d6ada024",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "1253d6155ce46d59",
+        "type": "debug",
+        "z": "c6822b01d6ada024",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "c51e500bd41f6361",
+        "type": "mqtt in",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "topic": "pumpinfo",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "b4a34adbf45afd18",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 120,
+        "y": 100,
+        "wires": [
+            [
+                "110eb50be2bd36e5"
+            ]
+        ]
+    },
+    {
+        "id": "4f6fc7370fa66a60",
+        "type": "mqtt out",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "topic": "pumpStart",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "b4a34adbf45afd18",
+        "x": 970,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "87200a21151b3e86",
+        "type": "mqtt in",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "topic": "waterDistance",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "b4a34adbf45afd18",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 420,
+        "wires": [
+            [
+                "086b2e3fe97c718f"
+            ]
+        ]
+    },
+    {
+        "id": "b839adee0bcceb33",
+        "type": "debug",
+        "z": "c6822b01d6ada024",
+        "name": "debug 4",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 740,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "174b807399b898b3",
+        "type": "mysql",
+        "z": "c6822b01d6ada024",
+        "mydb": "bc8892bffb53d81f",
+        "name": "",
+        "x": 510,
+        "y": 420,
+        "wires": [
+            [
+                "b839adee0bcceb33",
+                "431151251fef9d18"
+            ]
+        ]
+    },
+    {
+        "id": "086b2e3fe97c718f",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "SQL INSERT",
+        "func": "let currenttimestamp = Math.floor(new Date().getTime() / 1000);\nlet distance1 = msg.payload[\"distance1\"];\nlet distance2 = msg.payload[\"distance2\"];\n\n// Construct the SQL query\nmsg.topic = `INSERT INTO plants_level03 (timestamp, distance1, distance2) VALUES (${currenttimestamp}, '${distance1}', '${distance2}')`;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 420,
+        "wires": [
+            [
+                "174b807399b898b3"
+            ]
+        ]
+    },
+    {
+        "id": "75155eb177d5901c",
+        "type": "mysql",
+        "z": "c6822b01d6ada024",
+        "mydb": "bc8892bffb53d81f",
+        "name": "",
+        "x": 530,
+        "y": 100,
+        "wires": [
+            [
+                "84a7fa020cae4d6c"
+            ]
+        ]
+    },
+    {
+        "id": "84a7fa020cae4d6c",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "only timestemp",
+        "func": "msg.payload = msg.payload[0][\"timestamp\"];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 40,
+        "wires": [
+            [
+                "c522b4c16a7a9977"
+            ]
+        ]
+    },
+    {
+        "id": "c522b4c16a7a9977",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "time difference",
+        "func": "let timediff = (30);\nlet currenttimestamp = Math.floor(new Date().getTime() / 1000);\nlet lastTimestampFromDB = msg.payload;\nif((currenttimestamp - lastTimestampFromDB)>timediff){\n    msg.payload = \"1\";\n}\nelse msg.payload = \"0\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 220,
+        "wires": [
+            [
+                "4f6fc7370fa66a60",
+                "1253d6155ce46d59"
+            ]
+        ]
+    },
+    {
+        "id": "f61474ca2bf0534a",
+        "type": "inject",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 100,
+        "y": 540,
+        "wires": [
+            [
+                "48b4afd81a2dc467"
+            ]
+        ]
+    },
+    {
+        "id": "110eb50be2bd36e5",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "SQL SELECT",
+        "func": "\n\n// Construct the SQL query\nmsg.topic = `SELECT timestamp from plants_level03 ORDER BY id DESC LIMIT 1`;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 100,
+        "wires": [
+            [
+                "75155eb177d5901c"
+            ]
+        ]
+    },
+    {
+        "id": "48b4afd81a2dc467",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "SQL SELECT",
+        "func": "\n\n// Construct the SQL query\nmsg.topic = `SELECT distance1 from plants_level03 ORDER BY id DESC LIMIT 1`;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 280,
+        "y": 540,
+        "wires": [
+            [
+                "0944fe9655720a71"
+            ]
+        ]
+    },
+    {
+        "id": "0944fe9655720a71",
+        "type": "mysql",
+        "z": "c6822b01d6ada024",
+        "mydb": "bc8892bffb53d81f",
+        "name": "",
+        "x": 490,
+        "y": 540,
+        "wires": [
+            [
+                "c4fe3cbeaaea3215"
+            ]
+        ]
+    },
+    {
+        "id": "c4fe3cbeaaea3215",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "function 2",
+        "func": "let distance1 = msg.payload[0][\"distance1\"];\nlet containersize = 24;\nlet onethird = 16;\n\nif(distance1 >= onethird)\n{\n    //notify\n}\nelse\n{\n    //nothing should happend\n}\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 540,
+        "wires": [
+            [
+                "1c0820ad302034f5"
+            ]
+        ]
+    },
+    {
+        "id": "1c0820ad302034f5",
+        "type": "debug",
+        "z": "c6822b01d6ada024",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "29fe50f9bbe0b50c",
+        "type": "link out",
+        "z": "c6822b01d6ada024",
+        "name": "after water distance save in DB",
+        "mode": "link",
+        "links": [
+            "c35e1e67a2817bcb"
+        ],
+        "x": 805,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "c35e1e67a2817bcb",
+        "type": "link in",
+        "z": "c6822b01d6ada024",
+        "name": "check water level and notification",
+        "links": [
+            "29fe50f9bbe0b50c"
+        ],
+        "x": 95,
+        "y": 480,
+        "wires": [
+            [
+                "48b4afd81a2dc467"
+            ]
+        ]
+    },
+    {
+        "id": "431151251fef9d18",
+        "type": "delay",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "2",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 660,
+        "y": 340,
+        "wires": [
+            [
+                "29fe50f9bbe0b50c"
+            ]
+        ]
+    },
+    {
+        "id": "69edc5073e7fa551",
+        "type": "mqtt in",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "topic": "recorddeepsleep",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "b4a34adbf45afd18",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 160,
+        "y": 660,
+        "wires": [
+            [
+                "186f86fce52481b9"
+            ]
+        ]
+    },
+    {
+        "id": "186f86fce52481b9",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "SQL INSERT",
+        "func": "let currenttimestamp = Math.floor(new Date().getTime() / 1000);\n\n// Construct the SQL query\nmsg.topic = \"INSERT INTO deepsleep_plants01 (timestamp) VALUES (\" + currenttimestamp + \")\";\n\nreturn msg;\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 660,
+        "wires": [
+            [
+                "24a69ba3d65d0d24"
+            ]
+        ]
+    },
+    {
+        "id": "24a69ba3d65d0d24",
+        "type": "mysql",
+        "z": "c6822b01d6ada024",
+        "mydb": "bc8892bffb53d81f",
+        "name": "",
+        "x": 590,
+        "y": 660,
+        "wires": [
+            [
+                "9e46478cc0f6db3e"
+            ]
+        ]
+    },
+    {
+        "id": "9e46478cc0f6db3e",
+        "type": "debug",
+        "z": "c6822b01d6ada024",
+        "name": "debug 6",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "8a6b34cdd31a1af0",
+        "type": "ui_ui_control",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "events": "all",
+        "x": 140,
+        "y": 880,
+        "wires": [
+            [
+                "af2fb83adcea3a77"
+            ]
+        ]
+    },
+    {
+        "id": "e5adc162fea7f4d3",
+        "type": "inject",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 960,
+        "wires": [
+            [
+                "af2fb83adcea3a77"
+            ]
+        ]
+    },
+    {
+        "id": "e1481f41006edc55",
+        "type": "mysql",
+        "z": "c6822b01d6ada024",
+        "mydb": "bc8892bffb53d81f",
+        "name": "",
+        "x": 570,
+        "y": 920,
+        "wires": [
+            [
+                "281e3d8c51408f80"
+            ]
+        ]
+    },
+    {
+        "id": "281e3d8c51408f80",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "function 3",
+        "func": "let msg0 = {};\nlet msg1 = {};\nlet msg2 = {};\n\nlet container = 24;\nmsg0.payload = (container - msg.payload[0].distance1);\nmsg0.topic = \"Glucsfeder\";\n\n\nlet dateobject = new Date(msg.payload[0].timestamp * 1000);\nlet humanDateFormat = dateobject.toLocaleDateString(\"de-De\");\nmsg2.payload = humanDateFormat;\nmsg2.topic = \"last Watering\";\nreturn [msg0, msg1, msg2];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 760,
+        "y": 920,
+        "wires": [
+            [
+                "58f13d069a4913e1"
+            ],
+            [],
+            [
+                "5a369812985ff453"
+            ]
+        ]
+    },
+    {
+        "id": "58f13d069a4913e1",
+        "type": "ui_chart",
+        "z": "c6822b01d6ada024",
+        "name": "",
+        "group": "f1365cad15653d71",
+        "order": 0,
+        "width": "6",
+        "height": "4",
+        "label": "wateringlevels",
+        "chartType": "bar",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "24",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "x": 980,
+        "y": 840,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "5a369812985ff453",
+        "type": "ui_text",
+        "z": "c6822b01d6ada024",
+        "group": "f1365cad15653d71",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "last watering",
+        "format": "{{msg.payload}}",
+        "layout": "col-center",
+        "x": 970,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "af2fb83adcea3a77",
+        "type": "function",
+        "z": "c6822b01d6ada024",
+        "name": "SQL SELECT",
+        "func": "\n\n// Construct the SQL query\nmsg.topic = \"SELECT * from plants_level03 ORDER BY id DESC LIMIT 1\";\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 920,
+        "wires": [
+            [
+                "e1481f41006edc55"
+            ]
+        ]
+    },
+    {
+        "id": "b4a34adbf45afd18",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "192.168.1.7",
+        "port": "1884",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "bc8892bffb53d81f",
+        "type": "MySQLdatabase",
+        "name": "",
+        "host": "192.168.1.7",
+        "port": "3306",
+        "db": "plants",
+        "tz": "",
+        "charset": "UTF8"
+    },
+    {
+        "id": "f1365cad15653d71",
+        "type": "ui_group",
+        "name": "Default",
+        "tab": "03811f062d64d452",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "03811f062d64d452",
+        "type": "ui_tab",
+        "name": "WateringPlants",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
